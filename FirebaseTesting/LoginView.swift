@@ -20,8 +20,10 @@ struct LoginView: View {
     @State private var alertMsg: String = ""
     @FocusState private var focusField: Field?
     
+    @State private var isLoggedIn: Bool = false
+    
     var body: some View {
-        VStack (spacing: 16) {
+        VStack(spacing: 16) {
             Group {
                 TextField("Email", text: $userEmail)
                     .keyboardType(.emailAddress)
@@ -42,24 +44,69 @@ struct LoginView: View {
             .textFieldStyle(.roundedBorder)
             
             Button {
-                register()
+                login()
             } label: {
                 Text("Sign in")
+                    .frame(maxWidth: .infinity)
             }
+            .buttonStyle(.borderedProminent)
+            
+            Button {
+                register()
+            } label: {
+                Text("Sign up")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
         }
         .padding()
         .alert(alertMsg, isPresented: $showAlert) {
             Button("OK", role: .cancel) { }
         }
+        .onAppear {
+            checkIfLoggedIn()
+        }
+        .fullScreenCover(isPresented: $isLoggedIn) {
+            ContentView()
+        }
     }
+    
+    func checkIfLoggedIn() {
+        if Auth.auth().currentUser != nil {
+            isLoggedIn = true
+        }
+    }
+    
     func register() {
-        Auth.auth().createUser(withEmail: userEmail, password: userPassword) {
-            result, error in
+        guard !userEmail.isEmpty, !userPassword.isEmpty else {
+            alertMsg = "Email and Password cannot be empty."
+            showAlert = true
+            return
+        }
+        
+        Auth.auth().createUser(withEmail: userEmail, password: userPassword) { result, error in
             if let error = error {
-                alertMsg = "Something went wrong. \(error.localizedDescription)"
+                alertMsg = "\(error.localizedDescription)"
                 showAlert = true
             } else {
-                // TODO: Redirect user
+                isLoggedIn = true
+            }
+        }
+    }
+    
+    func login() {
+        guard !userEmail.isEmpty, !userPassword.isEmpty else {
+            alertMsg = "Email and Password cannot be empty."
+            showAlert = true
+            return
+        }
+        
+        Auth.auth().signIn(withEmail: userEmail, password: userPassword) { result, error in
+            if let error = error {
+                alertMsg = "\(error.localizedDescription)"
+                showAlert = true
+            } else {
+                isLoggedIn = true
             }
         }
     }
